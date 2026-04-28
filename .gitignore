@@ -1,0 +1,22 @@
+# Variáveis de Ambiente (Segurança Crítica)
+.env
+*.env
+
+# Ambientes Virtuais (Nunca subir para o GitHub)
+.venv/
+venv/
+env/
+
+# Cache e Arquivos Temporários do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Configurações de IDE
+.vscode/
+.idea/
