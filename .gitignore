@@ -1,22 +1,22 @@
-# Variáveis de Ambiente (Segurança Crítica)
+# --- Segurança e Variáveis de Ambiente ---
 .env
 *.env
+.env.*
 
-# Ambientes Virtuais (Nunca subir para o GitHub)
+# --- Ambientes Virtuais e Pipenv ---
 .venv/
 venv/
 env/
+# Nota: O Pipfile e Pipfile.lock DEVEM ser versionados, não ignore-os.
 
-# Cache e Arquivos Temporários do Python
+# --- Caches e Arquivos Compilados do Python ---
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 
-# SO
+# --- SO e IDE ---
 .DS_Store
 Thumbs.db
-
-# Configurações de IDE
 .vscode/
 .idea/
