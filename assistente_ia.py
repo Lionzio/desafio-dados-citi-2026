@@ -75,15 +75,19 @@ def gerar_resumo_contexto(file_name: str) -> str:
 # 2. MOTOR DE IA RESILIENTE
 # ==========================================
 def iniciar_assistente():
-    load_dotenv()
+    # IMPORTANTE: override=True força o Python a ler a chave nova e ignorar o Cache do Windows!
+    load_dotenv(override=True)
+    
     gemini_key = os.getenv("GEMINI_API_KEY")
     groq_key = os.getenv("GROQ_API_KEY")
     
     if not gemini_key and not groq_key:
-        logger.critical("Sem chaves de API. O assistente não pode arrancar.")
+        logger.critical("Sem chaves de API. O assistente não pode arrancar. Verifique o ficheiro .env")
         return
 
+    logger.info("A processar a base de dados tratada para extrair insights estatísticos...")
     contexto_dados = gerar_resumo_contexto('Base_Tratada_PTC_26.csv')
+    logger.info("Contexto estatístico gerado com sucesso!")
     
     prompt_sistema = f"""
     Você é um Consultor Financeiro e de Dados Sénior do CITi.
@@ -92,19 +96,38 @@ def iniciar_assistente():
     """
 
     # Inicialização das IAs
-    ia_google = genai.Client(api_key=gemini_key) if gemini_key else None
-    ia_groq = Groq(api_key=groq_key) if groq_key else None
-    
+    ia_google = None
+    if gemini_key:
+        try:
+            ia_google = genai.Client(api_key=gemini_key)
+            logger.info("Conector do Google Gemini inicializado.")
+        except Exception as e:
+            logger.error(f"Falha ao iniciar conector Gemini: {e}")
+
+    ia_groq = None
+    if groq_key:
+        try:
+            ia_groq = Groq(api_key=groq_key)
+            logger.info("Conector da Groq (Llama 3) inicializado (Pronto para Plano B).")
+        except Exception as e:
+            logger.error(f"Falha ao iniciar conector Groq: {e}")
+            
     historico = [{"role": "system", "content": prompt_sistema}]
 
     print("\n" + "="*65)
     print("🤖 Assistente Financeiro CITi IA (Modo Blindado) - ONLINE")
     print("="*65)
+    print("Dica: Faça perguntas sobre taxas de recusa ou tendências de negócio.")
+    print("Escreva 'sair' para encerrar.\n")
 
     while True:
         pergunta = input("\n👤 Pergunta: ")
-        if pergunta.strip().lower() == 'sair': break
-        if not pergunta.strip(): continue
+        if pergunta.strip().lower() == 'sair': 
+            print("\n🤖 A encerrar o assistente. Excelente trabalho neste projeto!")
+            break
+            
+        if not pergunta.strip(): 
+            continue
         
         logger.info("A pensar...")
         sucesso = False
@@ -120,9 +143,13 @@ def iniciar_assistente():
                 print(f"\n✅ RESPOSTA (Google Gemini):\n{resposta.text}\n")
                 sucesso = True
             except Exception as e:
-                logger.warning(f"Gemini indisponível: {e}. A tentar Groq...")
+                # Se for erro 429, o limite da conta gratuita esgotou
+                if "429" in str(e) or "Quota" in str(e):
+                    logger.warning("Cota do Google Gemini excedida (Erro 429 ou Limite 0). A tentar Groq...")
+                else:
+                    logger.warning(f"Gemini indisponível: {e}. A tentar Groq...")
 
-        # TENTATIVA 2: GROQ
+        # TENTATIVA 2: GROQ (FALLBACK)
         if not sucesso and ia_groq:
             try:
                 historico.append({"role": "user", "content": pergunta})
@@ -136,10 +163,12 @@ def iniciar_assistente():
                 print(f"\n✅ RESPOSTA (Groq / Llama 3):\n{txt}\n")
                 sucesso = True
             except Exception as e:
-                logger.critical(f"Groq falhou (Verifique se a chave é válida!): {e}")
+                logger.critical(f"Groq falhou (Verifique se a chave no .env começa com 'gsk_'): {e}")
 
         if not sucesso:
             print("\n❌ Nenhuma API respondeu. Reveja as suas chaves no .env")
+            
+        print("-" * 65)
 
 if __name__ == "__main__":
     iniciar_assistente()
